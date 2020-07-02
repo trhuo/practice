@@ -1,59 +1,94 @@
-/**
- * 判断数据源是否为 type 类型
- * @param source 数据源
- * @param type 类型，大写开头
- */
-export const isType = (source, type) => {
-  if (typeof source !== 'object') return false
-  return Object.prototype.toString.call(source) === `[object ${type}]`
+const getType = (source: any): string => {
+  return Object.prototype.toString.call(source)
+}
+const TYPES = {
+  regexp: '[object RegExp]',
+  date: '[object Date]',
+  array: '[object Array]',
+  object: '[object Object]',
+  map: '[object Map]',
+  set: '[object Set]',
 }
 
-const getRegFlags = (reg: RegExp): string => {
-  let flag = ''
-  if (reg.global) flag += 'g'
-  if (reg.ignoreCase) flag += 'i'
-  if (reg.multiline) flag += 'm'
-  return flag
+const copyRegExp = (regexp: RegExp): RegExp => {
+  let flags = ''
+  if (regexp.ignoreCase) flags += 'i'
+  if (regexp.multiline) flags += 'm'
+  if (regexp.global) flags += 'g'
+  const result = new RegExp(regexp.source, flags)
+  // lastIndex 用来指定下一次匹配的起始位置
+  result.lastIndex = regexp.lastIndex
+  return result
+}
+
+const copySymbol = (source: Symbol): Symbol => {
+  return Object(Symbol.prototype.valueOf.call(source))
 }
 
 /**
- * 深拷贝函数
+ * 深拷贝
  * @param source 拷贝源
- * @param map 存储当前对象 -> 它的深拷贝的映射，解决循环引用问题。WeakMap 的键必须为对象（保留对象的弱引用）
+ * @param map 用来存储已经复制过的对象，解决循环引用的问题
  */
-const deepCopy = (source, map = new WeakMap()) => {
-  // 非引用数据类型，直接返回
-  if (typeof source !== null && source !== null) return source
-
-  // 解决循环引用问题，拷贝开始前，先判断是否已经拷贝过当前对象，如果是则直接返回
-  if (map.get(source)) {
-    return map.get(source)
+const deepClone = function (source: unknown, map = new WeakMap()) {
+  // 如果是非引用数据类型，直接返回
+  if (typeof source !== 'object' || source === null) return source
+  if (map.get(source as Object)) {
+    // 之前已经复制过，直接返回
+    return map.get(source as Object)
   }
-  // 引用数据类型，初始化 target
+  // 没有复制过，区分需要遍历处理的类型(Array, Object, Map, Set等)和不需要遍历处理的类型(Number, Error, Date, RegExp等)
   let target
-  if (isType(source, 'Array')) {
-    // 数组类型
-    target = []
-  } else if (isType(source, 'RegExp')) {
-    // 正则类型
-    target = new RegExp(source.source, getRegFlags(source))
-    if ((source as RegExp).lastIndex) target.lastIndex = source.lastIndex
-  } else if (isType(source, 'Map')) {
-    // Map 类型
-    target = new Map()
-  } else if (isType(source, 'Set')) {
-    // Set 类型
-    target = new Set()
-  } else if (isType(source, 'Date')) {
-    // Date 类型
-    target = new Date(source.getTime())
+  const sourceType = getType(source)
+  if (
+    [TYPES['array'], TYPES['set'], TYPES['map'], TYPES['object']].indexOf(
+      sourceType
+    )
+  ) {
+    switch (sourceType) {
+      case TYPES['array']:
+        target = new Array()
+        break
+      case TYPES['object']:
+        target = new Object()
+        break
+      case TYPES['map']:
+        target = new Map()
+        break
+      case TYPES['set']:
+        target = new Set()
+    }
+  } else {
+    switch (getType(source)) {
+      case TYPES['regexp']:
+        return copyRegExp(source as RegExp)
+      case TYPES['symbol']:
+        return copySymbol(source as Symbol)
+      case TYPES['date']:
+        return new Date(source as Date)
+      default:
+        break
+    }
   }
   map.set(source, target)
-  // while 的性能比 for ... in 要好，可以使用 console.time() 和 console.timeEnd() 进行测试
-  for (const key in source) {
-    target[key] = deepCopy(source[key], map)
+  // 继续进行遍历处理
+  if (sourceType === TYPES['set']) {
+    ;(source as Set<any>).forEach((val) => {
+      target.add(deepClone(val, map))
+    })
+    return target
+  }
+  if (sourceType === TYPES['map']) {
+    ;(source as Map<any, any>).forEach((value, key) => {
+      target.set(key, deepClone(value, map))
+    })
+  }
+  if (sourceType === TYPES['array'] || sourceType === TYPES['object']) {
+    for (const key in source) {
+      target[key] = deepClone(source[key], map)
+    }
   }
   return target
 }
 
-export default deepCopy
+export default deepClone
