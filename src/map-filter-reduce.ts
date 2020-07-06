@@ -41,4 +41,4 @@ export function myReduce<T, P>(
   arr: Array<T>,
   cb: (acc: P, cur: T, index?: number, arr?: Array<T>) => P,
   initialVal?: T
-): P {}
+) {}
