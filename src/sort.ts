@@ -7,7 +7,7 @@
  */
 export function insertionSort<T>(arr: Array<T>): Array<T> {
   const len = arr.length
-  if (len === 0 || len === 1) return arr
+  if (len <= 1) return arr
   for (let i = 1; i < len; i++) {
     const tmp = arr[i]
     let j = i - 1
@@ -17,4 +17,26 @@ export function insertionSort<T>(arr: Array<T>): Array<T> {
     arr[j + 1] = tmp
   }
   return [...arr]
+}
+
+/**
+ * 快速排序
+ * 1.找一个基点，将比基点小的数字放到基点左边数组，将比基点大的数数字放到基点右边数组，返回 [...左边数组，基点数字，...右边数组]
+ * 2.对左边数组和右边数组执行第一步（递归）
+ * @param arr 待排序数组
+ */
+export function quickSort<T>(arr: Array<T>): Array<T> {
+  const len = arr.length
+  if (len <= 1) return arr
+  const pivot = arr[0]
+  const leftArr = []
+  const rightArr = []
+  for (let i = 1; i < len; i++) {
+    if (arr[i] < pivot) {
+      leftArr.push(arr[i])
+    } else {
+      rightArr.push(arr[i])
+    }
+  }
+  return [...quickSort(leftArr), arr[0], ...quickSort(rightArr)]
 }
