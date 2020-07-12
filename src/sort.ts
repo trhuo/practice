@@ -40,3 +40,21 @@ export function quickSort<T>(arr: Array<T>): Array<T> {
   }
   return [...quickSort(leftArr), arr[0], ...quickSort(rightArr)]
 }
+/**
+ *
+ * @param arr 待排序的数组
+ */
+export function bubbleSort<T>(arr: Array<T>): Array<T> {
+  const len = arr.length
+  if (len <= 1) return arr
+  for (let i = 0; i < len; i++) {
+    for (let j = 0; j < len - 1 - i; j++) {
+      if (arr[j] > arr[j + 1]) {
+        const tmp = arr[j + 1]
+        arr[j + 1] = arr[j]
+        arr[j] = tmp
+      }
+    }
+  }
+  return arr
+}
